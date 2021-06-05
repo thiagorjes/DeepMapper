@@ -36,3 +36,5 @@ python infer_video.py --model kitti --input test_video.mp4
 ```
 Obs.: test_video.mp4 é algum vídeo de sua escolha.
 
+# Artigo original
+[AdaBins](https://arxiv.org/abs/2011.14141)
