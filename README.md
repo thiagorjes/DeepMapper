@@ -1,5 +1,5 @@
 
-## [Estimativa de Profundidade de Alta Qualidade utilizando Camera Monocular via "Transfer Learning"](https://arxiv.org/abs/1812.11941)
+## [Estimativa de Profundidade de Alta Qualidade utilizando Camera Monocular via "Adaptative Bins"](https://arxiv.org/abs/2011.14141)
 
 ## Modelos Pré-Treinados
 Os modelos pré-treinados com "NYU depth v2" e "kitti" estão disponíveis [aqui](https://1drv.ms/u/s!AuWRnPR26byUmfRxBQ327hc8eXse2Q?e=AQuYZw)
