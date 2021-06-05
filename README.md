@@ -36,17 +36,3 @@ python infer_video.py --model kitti --input test_video.mp4
 ```
 Obs.: test_video.mp4 é algum vídeo de sua escolha.
 
-## Referência aos autores
-Corresponding paper to cite:
-```
-@article{Alhashim2018,
-  author    = {Ibraheem Alhashim and Peter Wonka},
-  title     = {High Quality Monocular Depth Estimation via Transfer Learning},
-  journal   = {arXiv e-prints},
-  volume    = {abs/1812.11941},
-  year      = {2018},
-  url       = {https://arxiv.org/abs/1812.11941},
-  eid       = {arXiv:1812.11941},
-  eprint    = {1812.11941}
-}
-```
