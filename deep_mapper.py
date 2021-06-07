@@ -1,25 +1,52 @@
-import glob
 import os
-
+import cv2
 import numpy as np
+from numpy.core.fromnumeric import resize
 import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision import transforms
-from tqdm import tqdm
-import cv2
 import model_io
-import utils
-from unet_adaptive_bins import UnetAdaptiveBins
+from models import UnetAdaptiveBins
+import matplotlib.pyplot as plt
 
+
+def activate_virtual_environment(environment_root):
+    """Configures the virtual environment starting at ``environment_root``."""
+    activate_script = os.path.join(
+        environment_root, 'bin', 'activate_this.py')
+    exec(compile(open(activate_script, "rb").read(), activate_script, 'exec'), dict(__file__=activate_script))
+
+carmen_home = os.getenv("CARMEN_HOME")
+virtualenv_root = carmen_home + "/src/deep_mapper/DeepMapper/venv"
+activate_virtual_environment(virtualenv_root)
+#virtualenv activated
+
+
+global inferHelper
+
+def initialize(net_ver):
+        print('entrou\n')
+        global inferHelper 
+        inferHelper = InferenceHelper(dataset=net_ver)
+
+def inferenceDepth(image):
+        global inferHelper
+        pred = inferHelper.predict_pil(image)
+        print('executou a predicao\n')
+        return pred
+
+def get_img_arr(image):
+    im = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    im = cv2.resize(im, (640, 480))
+    x = np.clip(np.asarray(im, dtype=float) / 255, 0, 1)
+    return x
 
 def _is_pil_image(img):
     return isinstance(img, Image.Image)
 
-
 def _is_numpy_image(img):
     return isinstance(img, np.ndarray) and (img.ndim in {2, 3})
-
 
 class ToTensor(object):
     def __init__(self):
@@ -62,42 +89,51 @@ class ToTensor(object):
         else:
             return img
 
-
 class InferenceHelper:
-    def __init__(self, dataset='nyu', device='cuda:0'):
+    def __init__(self, dataset='kitti', device='cuda:0'):
         self.toTensor = ToTensor()
         self.device = device
         if dataset == 'nyu':
             self.min_depth = 1e-3
             self.max_depth = 10
-            self.saving_factor = 1000  # used to save in 16 bit
+            self.saving_factor = 256  # used to save in 16 bit
             model = UnetAdaptiveBins.build(n_bins=256, min_val=self.min_depth, max_val=self.max_depth)
-            pretrained_path = "./pretrained/AdaBins_nyu.pt"
+            pretrained_path = carmen_home+"/src/deep_mapper/DeepMapper/pretrained/AdaBins_nyu.pt"
         elif dataset == 'kitti':
             self.min_depth = 1e-3
             self.max_depth = 80
             self.saving_factor = 256
             model = UnetAdaptiveBins.build(n_bins=256, min_val=self.min_depth, max_val=self.max_depth)
-            pretrained_path = "./pretrained/AdaBins_kitti.pt"
+            pretrained_path = carmen_home+"/src/deep_mapper/DeepMapper/pretrained/AdaBins_kitti.pt"
         else:
             raise ValueError("dataset can be either 'nyu' or 'kitti' but got {}".format(dataset))
 
         model, _, _ = model_io.load_checkpoint(pretrained_path, model)
         model.eval()
         self.model = model.to(self.device)
-
+    
     @torch.no_grad()
-    def predict_pil(self, pil_image, visualized=False):
+    def predict_pil(self, pil_image):
+        print("entrou em pil")
         # pil_image = pil_image.resize((640, 480))
         img = np.asarray(pil_image) / 255.
         img = self.toTensor(img).unsqueeze(0).float().to(self.device)
         bin_centers, pred = self.predict(img)
-        if visualized:
-            viz = utils.colorize(torch.from_numpy(pred).unsqueeze(0), vmin=None, vmax=None, cmap='magma')
-            # pred = np.asarray(pred*1000, dtype='uint16')
-            viz = Image.fromarray(viz)
-            return bin_centers, pred, viz
-        return bin_centers, pred.squeeze()
+
+        pred = pred.squeeze()
+        out_min = np.min(pred)
+        out_max = np.max(pred)-np.min(pred)
+        pred = pred - out_min
+        pred = pred/out_max
+        
+        #plasma = plt.get_cmap('plasma')
+        #pred = plasma(pred)[:, :, :3]
+
+        pred = (pred * self.saving_factor).astype('uint16')
+        final = pred*255
+        cv2.imwrite("/tmp/output2.png",final)
+        print(final.shape)
+        return bytearray(final)
 
     @torch.no_grad()
     def predict(self, image):
@@ -126,34 +162,6 @@ class InferenceHelper:
 
         return centers, final
 
-    @torch.no_grad()
-    def predict_dir(self, test_dir, out_dir):
-        os.makedirs(out_dir, exist_ok=True)
-        transform = ToTensor()
-        all_files = glob.glob(os.path.join(test_dir, "*"))
-        self.model.eval()
-        for f in tqdm(all_files):
-            image = np.asarray(Image.open(f), dtype='float32') / 255.
-            image = transform(image).unsqueeze(0).to(self.device)
-
-            centers, final = self.predict(image)
-            # final = final.squeeze().cpu().numpy()
-
-            final = (final * self.saving_factor).astype('uint16')
-            basename = os.path.basename(f).split('.')[0]
-            save_path = os.path.join(out_dir, basename + ".png")
-
-            Image.fromarray(final).save(save_path)
 
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from time import time
-
-    img =  cv2.imread("test_imgs/classroom__rgb_00283.jpg")
-    start = time()
-    inferHelper = InferenceHelper('kitti')
-    centers, pred = inferHelper.predict_pil(img)
-    print(f"took :{time() - start}s")
-    plt.imshow(pred, cmap='plasma')
-    plt.show()
+    
