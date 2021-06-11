@@ -36,5 +36,14 @@ python infer_video.py --model kitti --input test_video.mp4
 ```
 Obs.: test_video.mp4 é algum vídeo de sua escolha.
 
+
+# Nossas contribuições
+* View3dPointCloud.py: Script python para visualizar a reconstrução 3D a partir das imagens do ART (calibrado para cameras intelbras)
+* DeepMapper.ipynb: Script notebook para executar diretamente do Google Colab
+* infer_video.py: Script python para gerar video comparativo das imagens RGB e de Profundidade
+* Modulo deep_mapper do carmen: Integração com o sistema autônomo utilizado na IARA e no ART, disponível [aqui](https://github.com/LCAD-UFES/carmen_lcad/tree/master/src/deep_mapper/)
+* instalar_dependencias.sh: Script shell para instalação do virtualenv e dependencias, evitando conflitos com versões pré-existentes.
+* raw_data_downloader.sh: Adaptação do Script shell original para download do dataset kitti que pode ser interrompido e reinicia de onde parou.
+
 # Artigo original
 [AdaBins](https://arxiv.org/abs/2011.14141)
